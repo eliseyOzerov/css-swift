@@ -98,6 +98,44 @@ import SwiftCSS
     #expect(CSSSerializer().serialize(sheet) == ".card, main > section { width: clamp(12rem, 80%, 960px); color: rgb(26 115 232) }\n[data-value=\"a{b}\"]   ::before { content: \"x;y\"; color: white !important }")
 }
 
+@Test func cssSelectorConveniencesSerializeOfficialSelectorConcepts() {
+    let compoundAndComplex = CSSSelector
+        .element("button")
+        .id("save")
+        .className("primary")
+        .attribute("data-state", equals: "selected", modifier: .caseInsensitive)
+        .pseudoClass(.hover)
+        .child(.element("span").pseudoElement(.before))
+
+    #expect(compoundAndComplex.rawValue == "button#save.primary[data-state=\"selected\" i]:hover > span::before")
+
+    let selectorList = CSSSelector.list(
+        .className("card"),
+        .element("main").child(.element("section")),
+        .attribute("data-value", .substring, "a\"b").descendant(.element("a").pseudoClass(.focusVisible))
+    )
+
+    #expect(selectorList.rawValue == ".card, main > section, [data-value*=\"a\\\"b\"] a:focus-visible")
+
+    let functionalPseudoClasses = CSSSelector
+        .element("article")
+        .pseudoClass(.has("> img"))
+        .pseudoClass(.not(.className("disabled")))
+
+    #expect(functionalPseudoClasses.rawValue == "article:has(> img):not(.disabled)")
+
+    let sheet: CSSStyleSheet = [
+        CSSStyleRule(compoundAndComplex, style: [
+            CSSDeclaration(.color, .rgb(26, 115, 232)),
+        ]),
+        CSSStyleRule(selectorList, style: [
+            CSSDeclaration(.display, "grid"),
+        ]),
+    ]
+
+    #expect(CSSSerializer().serialize(sheet) == "button#save.primary[data-state=\"selected\" i]:hover > span::before { color: rgb(26 115 232) }\n.card, main > section, [data-value*=\"a\\\"b\"] a:focus-visible { display: grid }")
+}
+
 @Test func rejectsUnsupportedAtRulesInSimpleStyleSheets() throws {
     #expect(throws: CSSParseError.unsupportedAtRule("@media screen")) {
         try CSSStyleSheet(stylesheet: "@media screen { .card { display: grid } }")

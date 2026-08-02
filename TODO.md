@@ -9,8 +9,9 @@
    - [x] Common and modern value constructors.
 
 2. Selectors
-   - Add typed `CSSSelector` values for element, class, id, attribute, combinators, selector lists, pseudo-classes, and pseudo-elements.
-   - Add modifier-like rule builders for pseudo-classes and pseudo-elements that serialize to official selector syntax.
+   - [x] Add typed `CSSSelector` values for element, class, id, attribute, combinators, selector lists, pseudo-classes, and pseudo-elements.
+   - [x] Add modifier-like rule builders for pseudo-classes and pseudo-elements that serialize to official selector syntax.
+   - Add WPT-aligned selector parser tests if SwiftCSS grows beyond selector construction into selector parsing/validation.
 
 3. Property helpers
    - Add ergonomic property-group helpers that expand prefixed APIs such as margin, padding, border, inset, and scroll-margin to ordinary flat CSS declarations.

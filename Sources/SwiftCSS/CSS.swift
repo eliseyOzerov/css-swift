@@ -474,6 +474,277 @@ public struct CSSDeclarationBlock: Hashable, Sendable, ExpressibleByArrayLiteral
     }
 }
 
+/// A serialized CSS selector.
+///
+/// `CSSSelector` models the official Selectors terminology at the authoring
+/// boundary: type selectors, class selectors, ID selectors, attribute selectors,
+/// selector lists, combinators, pseudo-classes, and pseudo-elements. It does not
+/// parse or validate arbitrary selector grammar; raw selector text remains
+/// available for the full CSS surface.
+public struct CSSSelector: Hashable, Sendable, ExpressibleByStringLiteral {
+    public var rawValue: String
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.init(value)
+    }
+}
+
+public extension CSSSelector {
+    static let universal: Self = "*"
+
+    static func raw(_ selectorText: String) -> Self {
+        Self(selectorText)
+    }
+
+    static func type(_ localName: String) -> Self {
+        Self(localName)
+    }
+
+    static func element(_ localName: String) -> Self {
+        type(localName)
+    }
+
+    static func id(_ id: String) -> Self {
+        Self("#\(id)")
+    }
+
+    static func className(_ className: String) -> Self {
+        Self(".\(className)")
+    }
+
+    static func `class`(_ name: String) -> Self {
+        className(name)
+    }
+
+    static func attribute(_ name: String) -> Self {
+        Self(attributeSelector(name: name))
+    }
+
+    static func attribute(
+        _ name: String,
+        _ matcher: CSSAttributeSelectorMatcher,
+        _ value: String,
+        modifier: CSSAttributeSelectorModifier? = nil
+    ) -> Self {
+        Self(attributeSelector(name: name, matcher: matcher, value: value, modifier: modifier))
+    }
+
+    static func attribute(
+        _ name: String,
+        equals value: String,
+        modifier: CSSAttributeSelectorModifier? = nil
+    ) -> Self {
+        attribute(name, .exact, value, modifier: modifier)
+    }
+
+    static func list(_ selectors: [CSSSelector]) -> Self {
+        Self(selectors.map(\.rawValue).joined(separator: ", "))
+    }
+
+    static func list(_ selectors: CSSSelector...) -> Self {
+        list(selectors)
+    }
+
+    func id(_ id: String) -> Self {
+        appending("#\(id)")
+    }
+
+    func className(_ className: String) -> Self {
+        appending(".\(className)")
+    }
+
+    func `class`(_ name: String) -> Self {
+        className(name)
+    }
+
+    func attribute(_ name: String) -> Self {
+        appending(Self.attributeSelector(name: name))
+    }
+
+    func attribute(
+        _ name: String,
+        _ matcher: CSSAttributeSelectorMatcher,
+        _ value: String,
+        modifier: CSSAttributeSelectorModifier? = nil
+    ) -> Self {
+        appending(Self.attributeSelector(name: name, matcher: matcher, value: value, modifier: modifier))
+    }
+
+    func attribute(
+        _ name: String,
+        equals value: String,
+        modifier: CSSAttributeSelectorModifier? = nil
+    ) -> Self {
+        attribute(name, .exact, value, modifier: modifier)
+    }
+
+    func pseudoClass(_ pseudoClass: CSSPseudoClass) -> Self {
+        appending(":\(pseudoClass.rawValue)")
+    }
+
+    func pseudoElement(_ pseudoElement: CSSPseudoElement) -> Self {
+        appending("::\(pseudoElement.rawValue)")
+    }
+
+    func descendant(_ selector: CSSSelector) -> Self {
+        combined(with: selector, separator: " ")
+    }
+
+    func child(_ selector: CSSSelector) -> Self {
+        combined(with: selector, separator: " > ")
+    }
+
+    func nextSibling(_ selector: CSSSelector) -> Self {
+        combined(with: selector, separator: " + ")
+    }
+
+    func subsequentSibling(_ selector: CSSSelector) -> Self {
+        combined(with: selector, separator: " ~ ")
+    }
+
+    private func appending(_ suffix: String) -> Self {
+        Self("\(rawValue)\(suffix)")
+    }
+
+    private func combined(with selector: CSSSelector, separator: String) -> Self {
+        Self("\(rawValue)\(separator)\(selector.rawValue)")
+    }
+
+    private static func attributeSelector(
+        name: String,
+        matcher: CSSAttributeSelectorMatcher? = nil,
+        value: String? = nil,
+        modifier: CSSAttributeSelectorModifier? = nil
+    ) -> String {
+        guard let matcher, let value else {
+            return "[\(name)]"
+        }
+
+        let modifierText = modifier.map { " \($0.rawValue)" } ?? ""
+        return "[\(name)\(matcher.rawValue)\"\(escapeCSSString(value))\"\(modifierText)]"
+    }
+
+    private static func escapeCSSString(_ value: String) -> String {
+        value
+            .replacingOccurrences(of: "\\", with: "\\\\")
+            .replacingOccurrences(of: "\"", with: "\\\"")
+    }
+}
+
+/// Attribute selector match operators from Selectors.
+public enum CSSAttributeSelectorMatcher: String, Hashable, Sendable {
+    case exact = "="
+    case whitespaceSeparated = "~="
+    case dashSeparated = "|="
+    case prefix = "^="
+    case suffix = "$="
+    case substring = "*="
+}
+
+/// Attribute selector case-sensitivity modifiers.
+public enum CSSAttributeSelectorModifier: String, Hashable, Sendable {
+    case caseInsensitive = "i"
+    case caseSensitive = "s"
+}
+
+/// A CSS pseudo-class name or functional pseudo-class.
+public struct CSSPseudoClass: Hashable, Sendable, ExpressibleByStringLiteral {
+    public var rawValue: String
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.init(value)
+    }
+}
+
+public extension CSSPseudoClass {
+    static let active: Self = "active"
+    static let checked: Self = "checked"
+    static let disabled: Self = "disabled"
+    static let enabled: Self = "enabled"
+    static let focus: Self = "focus"
+    static let focusVisible: Self = "focus-visible"
+    static let focusWithin: Self = "focus-within"
+    static let hover: Self = "hover"
+    static let root: Self = "root"
+
+    static func function(_ name: String, _ argument: String) -> Self {
+        Self("\(name)(\(argument))")
+    }
+
+    static func dir(_ direction: String) -> Self {
+        function("dir", direction)
+    }
+
+    static func has(_ relativeSelectorList: String) -> Self {
+        function("has", relativeSelectorList)
+    }
+
+    static func `is`(_ selectorList: CSSSelector) -> Self {
+        function("is", selectorList.rawValue)
+    }
+
+    static func lang(_ languageRange: String) -> Self {
+        function("lang", languageRange)
+    }
+
+    static func not(_ selectorList: CSSSelector) -> Self {
+        function("not", selectorList.rawValue)
+    }
+
+    static func nthChild(_ argument: String) -> Self {
+        function("nth-child", argument)
+    }
+
+    static func `where`(_ selectorList: CSSSelector) -> Self {
+        function("where", selectorList.rawValue)
+    }
+}
+
+/// A CSS pseudo-element name or functional pseudo-element.
+public struct CSSPseudoElement: Hashable, Sendable, ExpressibleByStringLiteral {
+    public var rawValue: String
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public init(stringLiteral value: String) {
+        self.init(value)
+    }
+}
+
+public extension CSSPseudoElement {
+    static let after: Self = "after"
+    static let backdrop: Self = "backdrop"
+    static let before: Self = "before"
+    static let fileSelectorButton: Self = "file-selector-button"
+    static let firstLetter: Self = "first-letter"
+    static let firstLine: Self = "first-line"
+    static let marker: Self = "marker"
+    static let placeholder: Self = "placeholder"
+    static let selection: Self = "selection"
+
+    static func function(_ name: String, _ argument: String) -> Self {
+        Self("\(name)(\(argument))")
+    }
+
+    static func part(_ name: String) -> Self {
+        function("part", name)
+    }
+
+    static func slotted(_ selector: CSSSelector) -> Self {
+        function("slotted", selector.rawValue)
+    }
+}
+
 /// A simple CSS qualified rule with selector text and declaration-block contents.
 ///
 /// This type models the ordinary stylesheet rule shape `selector { name: value }`
@@ -487,6 +758,10 @@ public struct CSSStyleRule: Hashable, Sendable {
     public init(_ selectorText: String, style: CSSDeclarationBlock) {
         self.selectorText = selectorText
         self.style = style
+    }
+
+    public init(_ selector: CSSSelector, style: CSSDeclarationBlock) {
+        self.init(selector.rawValue, style: style)
     }
 }
 
