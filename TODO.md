@@ -14,7 +14,7 @@
    - Add WPT-aligned selector parser tests if SwiftCSS grows beyond selector construction into selector parsing/validation.
 
 3. Property helpers
-   - Add ergonomic property-group helpers that expand prefixed APIs such as margin, padding, border, inset, and scroll-margin to ordinary flat CSS declarations.
+   - [x] Add ergonomic property-group helpers that expand prefixed APIs such as margin, padding, border, inset, and scroll-margin to ordinary flat CSS declarations.
 
 4. Rules
    - Add media queries and supports queries.

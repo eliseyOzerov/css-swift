@@ -8,6 +8,7 @@ It is intentionally separate from SwiftHTML so HTML, SVG, and future Dot export 
 
 - Build selector text from official selector concepts: type, class, ID, attribute selectors, selector lists, combinators, pseudo-classes, and pseudo-elements.
 - Build declaration values for common and modern CSS units, colors, URLs, custom properties, and CSS functions.
+- Expand grouped Swift declaration helpers such as margin, padding, inset, border, and scroll margin into ordinary flat CSS declarations.
 - Parse and serialize simple declaration-block contents.
 - Parse and serialize simple top-level style rules while preserving selector text.
 - Keep full browser CSS parser recovery, at-rules, nesting, and selector validation out of the core subset until they are needed.

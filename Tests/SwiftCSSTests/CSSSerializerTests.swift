@@ -136,6 +136,23 @@ import SwiftCSS
     #expect(CSSSerializer().serialize(sheet) == "button#save.primary[data-state=\"selected\" i]:hover > span::before { color: rgb(26 115 232) }\n.card, main > section, [data-value*=\"a\\\"b\"] a:focus-visible { display: grid }")
 }
 
+@Test func cssDeclarationGroupHelpersExpandToFlatProperties() throws {
+    let declarations =
+        CSSDeclarations.margin(top: .px(8), inline: .rem(1), blockEnd: .em(2)) +
+        CSSDeclarations.padding(left: .ch(3), block: .px(12)) +
+        CSSDeclarations.inset(top: .px(0), inlineEnd: .percent(10)) +
+        CSSDeclarations.scrollMargin(blockStart: .px(24)) +
+        CSSDeclarations.border(width: .px(1), style: "solid", color: .hex("cfd7e6")) +
+        CSSDeclarations.prefixed("scroll-padding", [("inline", .rem(2))])
+
+    let block = CSSDeclarationBlock(declarations)
+
+    #expect(CSSSerializer().serialize(block) == "margin-inline: 1rem; margin-top: 8px; margin-block-end: 2em; padding-block: 12px; padding-left: 3ch; inset-top: 0px; inset-inline-end: 10%; scroll-margin-block-start: 24px; border-width: 1px; border-style: solid; border-color: #cfd7e6; scroll-padding-inline: 2rem")
+
+    let parsed = try CSSDeclarationBlock(styleAttribute: CSSSerializer().serialize(block))
+    #expect(parsed == block)
+}
+
 @Test func rejectsUnsupportedAtRulesInSimpleStyleSheets() throws {
     #expect(throws: CSSParseError.unsupportedAtRule("@media screen")) {
         try CSSStyleSheet(stylesheet: "@media screen { .card { display: grid } }")

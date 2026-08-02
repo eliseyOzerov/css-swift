@@ -445,6 +445,130 @@ public struct CSSDeclaration: Hashable, Sendable {
     }
 }
 
+/// Convenience factories for related CSS declarations.
+///
+/// These helpers keep CSS serialization flat. They group Swift authoring calls
+/// such as margins, padding, insets, and scroll margins, but each helper returns
+/// ordinary declarations like `margin-top` and `padding-inline`.
+public enum CSSDeclarations {
+    public static func prefixed(_ prefix: String, _ components: [(String, CSSValue)]) -> [CSSDeclaration] {
+        components.map { suffix, value in
+            CSSDeclaration(CSSDeclarationName(propertyName(prefix: prefix, suffix: suffix)), value)
+        }
+    }
+
+    public static func margin(
+        top: CSSValue? = nil,
+        right: CSSValue? = nil,
+        bottom: CSSValue? = nil,
+        left: CSSValue? = nil,
+        block: CSSValue? = nil,
+        inline: CSSValue? = nil,
+        blockStart: CSSValue? = nil,
+        blockEnd: CSSValue? = nil,
+        inlineStart: CSSValue? = nil,
+        inlineEnd: CSSValue? = nil
+    ) -> [CSSDeclaration] {
+        boxDeclarations(prefix: "margin", top: top, right: right, bottom: bottom, left: left, block: block, inline: inline, blockStart: blockStart, blockEnd: blockEnd, inlineStart: inlineStart, inlineEnd: inlineEnd)
+    }
+
+    public static func padding(
+        top: CSSValue? = nil,
+        right: CSSValue? = nil,
+        bottom: CSSValue? = nil,
+        left: CSSValue? = nil,
+        block: CSSValue? = nil,
+        inline: CSSValue? = nil,
+        blockStart: CSSValue? = nil,
+        blockEnd: CSSValue? = nil,
+        inlineStart: CSSValue? = nil,
+        inlineEnd: CSSValue? = nil
+    ) -> [CSSDeclaration] {
+        boxDeclarations(prefix: "padding", top: top, right: right, bottom: bottom, left: left, block: block, inline: inline, blockStart: blockStart, blockEnd: blockEnd, inlineStart: inlineStart, inlineEnd: inlineEnd)
+    }
+
+    public static func inset(
+        top: CSSValue? = nil,
+        right: CSSValue? = nil,
+        bottom: CSSValue? = nil,
+        left: CSSValue? = nil,
+        block: CSSValue? = nil,
+        inline: CSSValue? = nil,
+        blockStart: CSSValue? = nil,
+        blockEnd: CSSValue? = nil,
+        inlineStart: CSSValue? = nil,
+        inlineEnd: CSSValue? = nil
+    ) -> [CSSDeclaration] {
+        boxDeclarations(prefix: "inset", top: top, right: right, bottom: bottom, left: left, block: block, inline: inline, blockStart: blockStart, blockEnd: blockEnd, inlineStart: inlineStart, inlineEnd: inlineEnd)
+    }
+
+    public static func scrollMargin(
+        top: CSSValue? = nil,
+        right: CSSValue? = nil,
+        bottom: CSSValue? = nil,
+        left: CSSValue? = nil,
+        block: CSSValue? = nil,
+        inline: CSSValue? = nil,
+        blockStart: CSSValue? = nil,
+        blockEnd: CSSValue? = nil,
+        inlineStart: CSSValue? = nil,
+        inlineEnd: CSSValue? = nil
+    ) -> [CSSDeclaration] {
+        boxDeclarations(prefix: "scroll-margin", top: top, right: right, bottom: bottom, left: left, block: block, inline: inline, blockStart: blockStart, blockEnd: blockEnd, inlineStart: inlineStart, inlineEnd: inlineEnd)
+    }
+
+    public static func border(width: CSSValue? = nil, style: CSSValue? = nil, color: CSSValue? = nil) -> [CSSDeclaration] {
+        var declarations: [CSSDeclaration] = []
+        append(&declarations, prefix: "border", suffix: "width", value: width)
+        append(&declarations, prefix: "border", suffix: "style", value: style)
+        append(&declarations, prefix: "border", suffix: "color", value: color)
+        return declarations
+    }
+
+    private static func boxDeclarations(
+        prefix: String,
+        top: CSSValue?,
+        right: CSSValue?,
+        bottom: CSSValue?,
+        left: CSSValue?,
+        block: CSSValue?,
+        inline: CSSValue?,
+        blockStart: CSSValue?,
+        blockEnd: CSSValue?,
+        inlineStart: CSSValue?,
+        inlineEnd: CSSValue?
+    ) -> [CSSDeclaration] {
+        var declarations: [CSSDeclaration] = []
+        append(&declarations, prefix: prefix, suffix: "block", value: block)
+        append(&declarations, prefix: prefix, suffix: "inline", value: inline)
+        append(&declarations, prefix: prefix, suffix: "top", value: top)
+        append(&declarations, prefix: prefix, suffix: "right", value: right)
+        append(&declarations, prefix: prefix, suffix: "bottom", value: bottom)
+        append(&declarations, prefix: prefix, suffix: "left", value: left)
+        append(&declarations, prefix: prefix, suffix: "block-start", value: blockStart)
+        append(&declarations, prefix: prefix, suffix: "block-end", value: blockEnd)
+        append(&declarations, prefix: prefix, suffix: "inline-start", value: inlineStart)
+        append(&declarations, prefix: prefix, suffix: "inline-end", value: inlineEnd)
+        return declarations
+    }
+
+    private static func append(
+        _ declarations: inout [CSSDeclaration],
+        prefix: String,
+        suffix: String,
+        value: CSSValue?
+    ) {
+        guard let value else {
+            return
+        }
+        declarations.append(CSSDeclaration(CSSDeclarationName(propertyName(prefix: prefix, suffix: suffix)), value))
+    }
+
+    private static func propertyName(prefix: String, suffix: String) -> String {
+        suffix.isEmpty ? prefix : "\(prefix)-\(suffix)"
+    }
+}
+
 /// Ordered CSS declaration-block contents.
 ///
 /// This type represents the declaration-list text used by HTML `style`
