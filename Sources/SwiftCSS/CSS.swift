@@ -52,19 +52,213 @@ public extension CSSDeclarationName {
 ///
 /// Values are caller-provided CSS text. The initial core serializes declaration
 /// lists and does not parse or normalize CSS component values.
-public struct CSSValue: Hashable, Sendable, ExpressibleByStringLiteral {
+public struct CSSValue: Hashable, Sendable, ExpressibleByStringLiteral, ExpressibleByIntegerLiteral, ExpressibleByFloatLiteral, ExpressibleByBooleanLiteral {
     public var rawValue: String
 
     public init(_ rawValue: String) {
         self.rawValue = rawValue
     }
 
+    public init(_ rawValue: Int) {
+        self.rawValue = "\(rawValue)"
+    }
+
+    public init(_ rawValue: Double) {
+        self.rawValue = Self.formatNumber(rawValue)
+    }
+
+    public init(_ rawValue: Bool) {
+        self.rawValue = rawValue ? "true" : "false"
+    }
+
+    public init(_ value: some CSSValueConvertible) {
+        self = value.cssValue
+    }
+
     public init(stringLiteral value: String) {
+        self.init(value)
+    }
+
+    public init(integerLiteral value: Int) {
+        self.init(value)
+    }
+
+    public init(floatLiteral value: Double) {
+        self.init(value)
+    }
+
+    public init(booleanLiteral value: Bool) {
         self.init(value)
     }
 }
 
+public protocol CSSValueConvertible {
+    var cssValue: CSSValue { get }
+}
+
+extension CSSValue: CSSValueConvertible {
+    public var cssValue: CSSValue { self }
+}
+
+public struct CSSKeyword: Hashable, Sendable, CSSValueConvertible {
+    public var rawValue: String
+
+    public init(_ rawValue: String) {
+        self.rawValue = rawValue
+    }
+
+    public var cssValue: CSSValue {
+        CSSValue(rawValue)
+    }
+}
+
+public extension CSSKeyword {
+    static let auto = Self("auto")
+    static let currentColor = Self("currentColor")
+    static let inherit = Self("inherit")
+    static let initial = Self("initial")
+    static let none = Self("none")
+    static let revert = Self("revert")
+    static let transparent = Self("transparent")
+    static let unset = Self("unset")
+}
+
+public struct CSSBoxValue: Hashable, Sendable, CSSValueConvertible {
+    public var values: [CSSValue]
+
+    public init(_ all: CSSValue) {
+        values = [all]
+    }
+
+    public init(_ block: CSSValue, _ inline: CSSValue) {
+        values = [block, inline]
+    }
+
+    public init(_ top: CSSValue, _ inline: CSSValue, _ bottom: CSSValue) {
+        values = [top, inline, bottom]
+    }
+
+    public init(_ top: CSSValue, _ right: CSSValue, _ bottom: CSSValue, _ left: CSSValue) {
+        values = [top, right, bottom, left]
+    }
+
+    public var cssValue: CSSValue {
+        CSSValue(values.map(\.rawValue).joined(separator: " "))
+    }
+}
+
+public extension CSSBoxValue {
+    static func all(_ value: CSSValue) -> Self {
+        Self(value)
+    }
+
+    static func ltrb(left: CSSValue, top: CSSValue, right: CSSValue, bottom: CSSValue) -> Self {
+        Self(top, right, bottom, left)
+    }
+
+    static func vertical(_ value: CSSValue, horizontal: CSSValue = .zero) -> Self {
+        Self(value, horizontal)
+    }
+
+    static func vertical(top: CSSValue, bottom: CSSValue, horizontal: CSSValue = .zero) -> Self {
+        Self(top, horizontal, bottom, horizontal)
+    }
+
+    static func horizontal(_ value: CSSValue, vertical: CSSValue = .zero) -> Self {
+        Self(vertical, value)
+    }
+
+    static func horizontal(left: CSSValue, right: CSSValue, vertical: CSSValue = .zero) -> Self {
+        Self(vertical, right, vertical, left)
+    }
+
+    static func symmetric(vertical: CSSValue, horizontal: CSSValue) -> Self {
+        Self(vertical, horizontal)
+    }
+
+    static func axes(block: CSSValue, inline: CSSValue) -> Self {
+        symmetric(vertical: block, horizontal: inline)
+    }
+
+    static func topInlineBottom(top: CSSValue, inline: CSSValue, bottom: CSSValue) -> Self {
+        Self(top, inline, bottom)
+    }
+
+    static func edges(top: CSSValue, right: CSSValue, bottom: CSSValue, left: CSSValue) -> Self {
+        ltrb(left: left, top: top, right: right, bottom: bottom)
+    }
+}
+
+public enum CSSBorderStyle: String, Hashable, Sendable, CSSValueConvertible {
+    case dashed
+    case dotted
+    case double
+    case groove
+    case hidden
+    case inset
+    case none
+    case outset
+    case ridge
+    case solid
+
+    public var cssValue: CSSValue {
+        CSSValue(rawValue)
+    }
+}
+
+public struct CSSBorderValue: Hashable, Sendable, CSSValueConvertible {
+    public var width: CSSValue?
+    public var style: CSSBorderStyle
+    public var color: CSSValue?
+
+    public init(width: CSSValue? = nil, style: CSSBorderStyle, color: CSSValue? = nil) {
+        self.width = width
+        self.style = style
+        self.color = color
+    }
+
+    public var cssValue: CSSValue {
+        CSSValue(([width, style.cssValue, color].compactMap { $0 }).map(\.rawValue).joined(separator: " "))
+    }
+}
+
+public extension CSSBorderValue {
+    static func line(width: CSSValue? = nil, style: CSSBorderStyle, color: CSSValue? = nil) -> Self {
+        Self(width: width, style: style, color: color)
+    }
+
+    static func solid(_ width: CSSValue? = nil, _ color: CSSValue? = nil) -> Self {
+        Self(width: width, style: .solid, color: color)
+    }
+
+    static func dashed(_ width: CSSValue? = nil, _ color: CSSValue? = nil) -> Self {
+        Self(width: width, style: .dashed, color: color)
+    }
+}
+
 public extension CSSValue {
+    static let auto = CSSKeyword.auto.cssValue
+    static let currentColor = CSSKeyword.currentColor.cssValue
+    static let inherit = CSSKeyword.inherit.cssValue
+    static let initial = CSSKeyword.initial.cssValue
+    static let none = CSSKeyword.none.cssValue
+    static let revert = CSSKeyword.revert.cssValue
+    static let transparent = CSSKeyword.transparent.cssValue
+    static let unset = CSSKeyword.unset.cssValue
+    static let zero = CSSValue("0")
+
+    static func raw(_ value: String) -> Self {
+        Self(value)
+    }
+
+    static func num(_ value: Double) -> Self {
+        number(value)
+    }
+
+    static func num(_ value: Int) -> Self {
+        Self(value)
+    }
+
     static func number(_ value: Double) -> Self {
         Self(formatNumber(value))
     }

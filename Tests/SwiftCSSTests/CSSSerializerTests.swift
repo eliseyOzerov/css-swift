@@ -28,6 +28,53 @@ import SwiftCSS
     #expect(CSSSerializer().serialize(block) == "color: rgb(26 115 232) !important; background-color: #ffffff")
 }
 
+@Test func cssValuePresetsCoverRawAndUnitlessNumbers() {
+    let block: CSSDeclarationBlock = [
+        CSSDeclaration(.lineHeight, .num(1.25)),
+        CSSDeclaration(.fontWeight, .num(700)),
+        CSSDeclaration(.font, .raw(#"16px/1.5 "SF Pro Text", sans-serif"#)),
+    ]
+
+    #expect(CSSSerializer().serialize(block) == #"line-height: 1.25; font-weight: 700; font: 16px/1.5 "SF Pro Text", sans-serif"#)
+}
+
+@Test func cssValuesAcceptRawStringAndNumberLiterals() {
+    let block: CSSDeclarationBlock = [
+        .lineHeight(1.25),
+        .fontWeight(700),
+        .font(#"16px/1.5 "SF Pro Text", sans-serif"#),
+        .customProperty("dot-editing", true),
+        .margin(.horizontal(.auto)),
+    ]
+
+    #expect(CSSSerializer().serialize(block) == #"line-height: 1.25; font-weight: 700; font: 16px/1.5 "SF Pro Text", sans-serif; --dot-editing: true; margin: 0 auto"#)
+}
+
+@Test func typedCSSValuesCoverKeywordsBoxesAndBorders() {
+    let sheet: CSSStyleSheet = [
+        .class("card") {
+            .margin(.horizontal(.auto));
+            .padding(.ltrb(left: .rem(1.5), top: .rem(1), right: .rem(1.5), bottom: .zero));
+            .border(.solid(.px(1), .hex("cfd7e6")));
+            .outline(.none);
+        },
+    ]
+
+    #expect(CSSSerializer().serialize(sheet) == ".card { margin: 0 auto; padding: 1rem 1.5rem 0 1.5rem; border: 1px solid #cfd7e6; outline: none }")
+}
+
+@Test func cssBoxValuesSerializeEdgeInsetPresets() {
+    let block: CSSDeclarationBlock = [
+        .padding(.all(.rem(1))),
+        .margin(.vertical(top: .px(4), bottom: .px(8))),
+        .padding(.horizontal(left: .px(12), right: .px(16))),
+        .margin(.symmetric(vertical: .rem(1), horizontal: .auto)),
+        .padding(.ltrb(left: .px(1), top: .px(2), right: .px(3), bottom: .px(4))),
+    ]
+
+    #expect(CSSSerializer().serialize(block) == "padding: 1rem; margin: 4px 0 8px 0; padding: 0 16px 0 12px; margin: 1rem auto; padding: 2px 3px 4px 1px")
+}
+
 @Test func parsesDeclarationBlocksWithCommonValueForms() throws {
     let block = try CSSDeclarationBlock(styleAttribute: """
     width: 50%; margin: 1em 2rem; color: rgb(10 20 30 / 0.5); transform: translateX(calc(100% - 2em)); background-image: url("a;b.png");
@@ -134,6 +181,24 @@ import SwiftCSS
     ]
 
     #expect(CSSSerializer().serialize(sheet) == "button#save.primary[data-state=\"selected\" i]:hover > span::before { color: rgb(26 115 232) }\n.card, main > section, [data-value*=\"a\\\"b\"] a:focus-visible { display: grid }")
+}
+
+@Test func cssBuilderDSLSerializesStyleSheets() {
+    let sheet: CSSStyleSheet = [
+        .root {
+            .colorScheme("light dark");
+            .customProperty("dot-accent", "#1f7ae0");
+        },
+        .class("card") {
+            .display("grid");
+            .fontSize(.rem(1.2));
+        },
+        .id("save") {
+            .color(.variable("dot-accent"));
+        },
+    ]
+
+    #expect(CSSSerializer().serialize(sheet) == ":root { color-scheme: light dark; --dot-accent: #1f7ae0 }\n.card { display: grid; font-size: 1.2rem }\n#save { color: var(--dot-accent) }")
 }
 
 @Test func cssDeclarationGroupHelpersExpandToFlatProperties() throws {
